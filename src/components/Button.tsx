@@ -3,7 +3,7 @@ import {ActivityIndicator, StyleSheet, Text, TextStyle, TouchableOpacity, ViewSt
 import {colors, shadows, spacing, typography} from '@/theme';
 
 interface ButtonProps {
-    title: string;
+    title?: string;
     onPress: () => void;
     variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
     size?: 'small' | 'medium' | 'large';
@@ -11,6 +11,7 @@ interface ButtonProps {
     loading?: boolean;
     style?: ViewStyle;
     textStyle?: TextStyle;
+    children?: React.ReactNode;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -22,6 +23,7 @@ export const Button: React.FC<ButtonProps> = ({
                                                   loading = false,
                                                   style,
                                                   textStyle,
+                                                  children,
                                               }) => {
     const getButtonStyle = (): ViewStyle => {
         const baseStyle: ViewStyle = {
@@ -36,6 +38,26 @@ export const Button: React.FC<ButtonProps> = ({
         return {...baseStyle, ...styles[variant]};
     };
 
+    const renderContent = () => {
+        if (loading) {
+            return (
+                <ActivityIndicator
+                    color={variant === 'primary' ? colors.text : colors.primary}
+                />
+            );
+        }
+
+        if (children) {
+            return children;
+        }
+
+        return (
+            <Text style={[styles.text, styles[`${variant}Text`], textStyle]}>
+                {title}
+            </Text>
+        );
+    };
+
     return (
         <TouchableOpacity
             style={[getButtonStyle(), style]}
@@ -43,15 +65,7 @@ export const Button: React.FC<ButtonProps> = ({
             disabled={disabled || loading}
             activeOpacity={0.7}
         >
-            {loading ? (
-                <ActivityIndicator
-                    color={variant === 'primary' ? colors.text : colors.primary}
-                />
-            ) : (
-                <Text style={[styles.text, styles[`${variant}Text`], textStyle]}>
-                    {title}
-                </Text>
-            )}
+            {renderContent()}
         </TouchableOpacity>
     );
 };
