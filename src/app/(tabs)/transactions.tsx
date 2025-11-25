@@ -1,13 +1,13 @@
 import React, {useEffect, useState} from 'react';
 import {FlatList, RefreshControl, StyleSheet, Text, View} from 'react-native';
-import {AssetTicker, useWallet} from '@tetherto/wdk-react-native-provider';
+import {AssetTicker, NetworkType, useWallet} from '@tetherto/wdk-react-native-provider';
 import {ArrowDownLeft, ArrowUpRight} from 'lucide-react-native';
 import {Card, Screen} from '@/components';
 import {colors, spacing, typography} from '@/theme';
 import {FiatCurrency, pricingService} from '@/services/pricing.service';
 import {assetConfig} from '@/config/assets';
-import formatTokenAmount from "@/utils/format-token-amount";
-import formatAmount from "@/utils/format-amount";
+import {formatAmount, formatTokenAmount} from "@/utils/format";
+import {networkConfigs} from "@/config/networks";
 
 interface Transaction {
     id: string;
@@ -23,14 +23,13 @@ interface Transaction {
 }
 
 export default function TransactionsScreen() {
-    const {transactions: walletTransactions, addresses, refreshWalletBalance} = useWallet();
+    const {transactions: walletTransactions, addresses, refreshWalletBalance, refreshTransactions} = useWallet();
     const [refreshing, setRefreshing] = useState(false);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
 
     const getTransactionsWithFiatValues = async () => {
         if (!walletTransactions?.list) return [];
 
-        // Get the wallet's own addresses for comparison
         const walletAddresses = addresses
             ? Object.values(addresses).map(addr => addr?.toLowerCase())
             : [];
@@ -44,7 +43,6 @@ export default function TransactionsScreen() {
                     const amount = parseFloat(tx.amount);
                     const config = assetConfig[tx.token as keyof typeof assetConfig];
 
-                    // Calculate fiat amount using pricing service
                     const amountUSD = await pricingService.getFiatValue(
                         amount,
                         tx.token as AssetTicker,
@@ -75,6 +73,7 @@ export default function TransactionsScreen() {
         setRefreshing(true);
         try {
             await refreshWalletBalance();
+            await refreshTransactions();
             const updatedTransactions = await getTransactionsWithFiatValues();
             setTransactions(updatedTransactions);
         } catch (error) {
@@ -88,6 +87,8 @@ export default function TransactionsScreen() {
         const isReceived = item.type === 'received';
         const date = new Date(item.timestamp).toLocaleDateString();
         const time = new Date(item.timestamp).toLocaleTimeString();
+
+        const networkInfo = networkConfigs[item.blockchain as NetworkType];
 
         return (
             <Card style={styles.transactionCard}>
@@ -104,7 +105,7 @@ export default function TransactionsScreen() {
                         {isReceived ? 'Received' : 'Sent'} {item.name}
                     </Text>
                     <Text style={styles.transactionAddress} numberOfLines={1}>
-                        {item.blockchain}
+                        {networkInfo?.name}
                     </Text>
                     <Text style={styles.transactionDate}>{`${date} ${time}`}</Text>
                 </View>

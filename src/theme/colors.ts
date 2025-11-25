@@ -3,6 +3,8 @@ export const colors = {
     surface: '#1A1A1A',
     surfaceHover: '#252525',
 
+    card: '#252525',
+
     primary: '#3B82F6',
     primaryHover: '#2563EB',
     primaryLight: '#60A5FA',

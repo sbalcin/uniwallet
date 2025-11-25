@@ -1,5 +1,5 @@
 import React from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {Image, StyleSheet, Text, View} from 'react-native';
 import {useRouter} from 'expo-router';
 import {Button, Screen} from '@/components';
 import {colors, spacing, typography} from '@/theme';
@@ -12,24 +12,26 @@ export default function OnboardingScreen() {
         <Screen style={styles.container}>
             <View style={styles.content}>
                 <View style={styles.logoContainer}>
-                    <View style={styles.logo}>
-                        <Text style={styles.logoText}>UW</Text>
-                    </View>
+                    <Image
+                        source={require('../../../assets/images/app-logo.png')}
+                        style={styles.logo}
+                        resizeMode="cover"
+                    />
                     <Text style={styles.title}>UniWallet</Text>
-                    <Text style={styles.subtitle}>Your secure crypto wallet</Text>
+                    <Text style={styles.subtitle}>Secure crypto wallet</Text>
                 </View>
 
                 <View style={styles.features}>
                     <View style={styles.feature}>
-                        <Lock size={32} color={colors.textSecondary}/>
+                        <Lock size={32} color={colors.primaryLight}/>
                         <Text style={styles.featureText}>Secure & Private</Text>
                     </View>
                     <View style={styles.feature}>
-                        <Rocket size={32} color={colors.textSecondary}/>
+                        <Rocket size={32} color={colors.primaryLight}/>
                         <Text style={styles.featureText}>Fast Transactions</Text>
                     </View>
                     <View style={styles.feature}>
-                        <Globe size={32} color={colors.textSecondary}/>
+                        <Globe size={32} color={colors.primaryLight}/>
                         <Text style={styles.featureText}>Multi-Chain Support</Text>
                     </View>
                 </View>
@@ -73,11 +75,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: spacing.md,
-    },
-    logoText: {
-        ...typography.displayMedium,
-        color: colors.text,
-        fontWeight: '700',
     },
     title: {
         ...typography.displayLarge,

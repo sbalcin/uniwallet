@@ -1,12 +1,12 @@
-import { assetConfig } from '@/config/assets';
+import {assetConfig} from '@/config/assets';
 
 const getDisplaySymbol = (denomination: string) => {
-  const lower = denomination.toLowerCase();
+    const lower = denomination.toLowerCase();
 
-  const config = assetConfig[lower];
-  if (config) return config.symbol;
+    const config = assetConfig[lower];
+    if (config) return config.symbol;
 
-  return lower.toUpperCase();
+    return lower.toUpperCase();
 };
 
 export default getDisplaySymbol;

@@ -1,14 +1,15 @@
-import React, {useState} from 'react';
-import {Alert, StyleSheet, Text, View} from 'react-native';
-import {useRouter} from 'expo-router';
-import {useWallet} from '@tetherto/wdk-react-native-provider';
-import {Button, Header, Input, Screen} from '@/components';
-import {colors, spacing, typography} from '@/theme';
-import {Megaphone} from "lucide-react-native";
+import React, { useState } from 'react';
+import { Alert, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useWallet } from '@tetherto/wdk-react-native-provider';
+import { Button, Header, Input, Screen } from '@/components';
+import { colors, spacing, typography } from '@/theme';
+import { Megaphone } from "lucide-react-native";
+import {showImportWalletAlert} from "@/utils/alert";
 
 export default function ImportWalletScreen() {
     const router = useRouter();
-    const {createWallet} = useWallet();
+    const { createWallet, clearWallet, wallet } = useWallet();
     const [walletName, setWalletName] = useState('');
     const [mnemonic, setMnemonic] = useState('');
     const [loading, setLoading] = useState(false);
@@ -30,12 +31,29 @@ export default function ImportWalletScreen() {
             return;
         }
 
+        // If wallet exists, show confirmation
+        if (wallet) {
+            showImportWalletAlert(async () => {
+                await proceedWithImport();
+            });
+        } else {
+            await proceedWithImport();
+        }
+    };
+
+    const proceedWithImport = async () => {
         try {
             setLoading(true);
+
+            if (wallet) {
+                await clearWallet();
+            }
+
             await createWallet({
                 name: walletName.trim(),
                 mnemonic: mnemonic.trim(),
             });
+
             router.push('/onboarding/complete');
         } catch (error) {
             Alert.alert('Error', 'Failed to import wallet. Please check your recovery phrase.');
@@ -47,7 +65,7 @@ export default function ImportWalletScreen() {
 
     return (
         <Screen scrollable>
-            <Header title="Import Wallet" showBack/>
+            <Header title="Import Wallet" showBack />
 
             <View style={styles.content}>
                 <View style={styles.info}>
@@ -56,6 +74,14 @@ export default function ImportWalletScreen() {
                         Enter your recovery phrase to restore your wallet
                     </Text>
                 </View>
+
+                {wallet && (
+                    <View style={styles.warningContainer}>
+                        <Text style={styles.warningText}>
+                            ⚠️ Importing a wallet will replace your current wallet. Make sure you have backed up your current recovery phrase.
+                        </Text>
+                    </View>
+                )}
 
                 <Input
                     label="Wallet Name"
@@ -77,7 +103,7 @@ export default function ImportWalletScreen() {
                 />
 
                 <View style={styles.hint}>
-                    <Megaphone size={16} color={colors.textSecondary}/>
+                    <Megaphone size={16} color={colors.textSecondary} />
                     <Text style={styles.hintText}>
                         Separate each word with a space
                     </Text>
@@ -115,6 +141,19 @@ const styles = StyleSheet.create({
     description: {
         ...typography.bodyMedium,
         color: colors.textSecondary,
+    },
+    warningContainer: {
+        backgroundColor: colors.warning + '20',
+        borderRadius: 8,
+        padding: spacing.md,
+        marginBottom: spacing.lg,
+        borderWidth: 1,
+        borderColor: colors.warning + '30',
+    },
+    warningText: {
+        ...typography.bodySmall,
+        color: colors.textSecondary,
+        lineHeight: 20,
     },
     mnemonicInput: {
         height: 100,

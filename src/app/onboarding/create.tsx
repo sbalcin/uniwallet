@@ -1,10 +1,11 @@
-import React, {useEffect, useState} from 'react';
-import {Alert, StyleSheet, Text, View} from 'react-native';
-import {useRouter} from 'expo-router';
-import {useWallet, WDKService} from '@tetherto/wdk-react-native-provider';
-import {Button, Header, Input, Screen} from '@/components';
-import {colors, spacing, typography} from '@/theme';
-import {getUniqueId} from 'react-native-device-info';
+import React, { useEffect, useState } from 'react';
+import { Alert, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useWallet, WDKService } from '@tetherto/wdk-react-native-provider';
+import { Button, Header, Input, Screen } from '@/components';
+import { colors, spacing, typography } from '@/theme';
+import { getUniqueId } from 'react-native-device-info';
+import {showCreateWalletAlert} from "@/utils/alert";
 
 export default function CreateWalletScreen() {
     const router = useRouter();
@@ -15,7 +16,7 @@ export default function CreateWalletScreen() {
     const [mnemonic, setMnemonic] = useState<string[]>([]);
     const [isGenerating, setIsGenerating] = useState(true);
 
-    const {createWallet} = useWallet();
+    const { createWallet, clearWallet, wallet } = useWallet();
 
     useEffect(() => {
         void generateMnemonic();
@@ -26,7 +27,7 @@ export default function CreateWalletScreen() {
             setIsGenerating(true);
             setError(null);
             const prf = await getUniqueId();
-            const mnemonicString = await WDKService.createSeed({prf});
+            const mnemonicString = await WDKService.createSeed({ prf });
 
             if (!mnemonicString) {
                 throw new Error('Received empty mnemonic');
@@ -58,8 +59,22 @@ export default function CreateWalletScreen() {
             return;
         }
 
+        if (wallet) {
+            showCreateWalletAlert(async () => {
+                await proceedWithCreation();
+            });
+        } else {
+            await proceedWithCreation();
+        }
+    };
+
+    const proceedWithCreation = async () => {
         try {
             setLoading(true);
+
+            if (wallet) {
+                await clearWallet();
+            }
 
             const mnemonicString = mnemonic.join(' ');
 
@@ -70,7 +85,7 @@ export default function CreateWalletScreen() {
 
             router.push({
                 pathname: '/onboarding/backup-phrase',
-                params: {mnemonic: mnemonicString}
+                params: { mnemonic: mnemonicString }
             });
 
         } catch (error) {
@@ -81,27 +96,16 @@ export default function CreateWalletScreen() {
         }
     };
 
-    // for debug only, delete it
     const renderMnemonicPreview = () => {
         if (isGenerating) {
             return <Text style={styles.generatingText}>Generating mnemonic...</Text>;
         }
-
-        if (mnemonic.length > 0) {
-            return (
-                <View style={styles.mnemonicPreview}>
-                    <Text style={styles.mnemonicLabel}>Generated Mnemonic (Preview):</Text>
-                    <Text style={styles.mnemonicWords}>{mnemonic.join(' ')}</Text>
-                </View>
-            );
-        }
-
         return null;
     };
 
     return (
         <Screen>
-            <Header title="Create Wallet" showBack/>
+            <Header title="Create Wallet" showBack />
 
             <View style={styles.content}>
                 <View style={styles.info}>
@@ -110,6 +114,14 @@ export default function CreateWalletScreen() {
                         Choose a name to help you identify this wallet
                     </Text>
                 </View>
+
+                {wallet && (
+                    <View style={styles.warningContainer}>
+                        <Text style={styles.warningText}>
+                            ⚠️ Creating a new wallet will replace your current wallet. Make sure you have backed up your recovery phrase.
+                        </Text>
+                    </View>
+                )}
 
                 <Input
                     label="Wallet Name"
@@ -163,6 +175,19 @@ const styles = StyleSheet.create({
     description: {
         ...typography.bodyMedium,
         color: colors.textSecondary,
+    },
+    warningContainer: {
+        backgroundColor: colors.warning + '20',
+        borderRadius: 8,
+        padding: spacing.md,
+        marginBottom: spacing.lg,
+        borderWidth: 1,
+        borderColor: colors.warning + '30',
+    },
+    warningText: {
+        ...typography.bodySmall,
+        color: colors.textSecondary,
+        lineHeight: 20,
     },
     footer: {
         paddingHorizontal: spacing.lg,

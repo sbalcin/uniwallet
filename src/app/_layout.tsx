@@ -5,12 +5,13 @@ import {Stack} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import {StatusBar} from 'expo-status-bar';
 import {useEffect} from 'react';
-import {View} from 'react-native';
+import {Platform, View} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import {Toaster} from 'sonner-native';
 import {colors} from '@/theme';
 import getChainsConfig from "@/config/chains";
+import * as NavigationBar from 'expo-navigation-bar';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -28,6 +29,10 @@ export default function RootLayout() {
         const initApp = async () => {
             try {
                 await WDKService.initialize();
+
+                if (Platform.OS === 'android') {
+                    await NavigationBar.setButtonStyleAsync("light");
+                }
             } catch (error) {
                 console.error('Failed to initialize WDK:', error);
             } finally {

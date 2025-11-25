@@ -1,5 +1,5 @@
 import React from 'react';
-import {Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useRouter} from 'expo-router';
 import {NetworkType, useWallet} from '@tetherto/wdk-react-native-provider';
 import * as Clipboard from 'expo-clipboard';
@@ -23,7 +23,7 @@ export default function SettingsScreen() {
                     style: 'cancel',
                 },
                 {
-                    text: 'Delete Wallet',
+                    text: 'Delete',
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -48,29 +48,29 @@ export default function SettingsScreen() {
     const formatAddress = (address: string) => {
         if (!address) return 'N/A';
         if (address.length <= 15) return address;
-        return `${address.slice(0, 10)}...${address.slice(-10)}`;
+        return `${address.slice(0, 8)}...${address.slice(-8)}`;
     };
 
-    const getNetworkName = (network: string) => {
-        return networkConfigs[network as NetworkType]?.name || network;
+    const getNetworkInfo = (network: string) => {
+        const config = networkConfigs[network as NetworkType];
+        return {
+            name: config?.name || network,
+            icon: config?.icon,
+            color: config?.color || colors.primary,
+        };
     };
 
     const settingsOptions = [
         {
             icon: Wallet,
-            title: 'Manage Wallets',
+            title: 'Manage Wallet',
             onPress: () => router.push('/manage-wallets'),
         },
-        {
-            icon: Key,
-            title: 'Security & Privacy',
-            onPress: () => router.push('/security'),
-        },
-        {
+        ...(wallet ? [{
             icon: Shield,
             title: 'Backup Wallet',
             onPress: () => router.push('/backup'),
-        },
+        }] : []),
         {
             icon: Info,
             title: 'About',
@@ -89,8 +89,23 @@ export default function SettingsScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Wallet</Text>
+                    <Card style={styles.walletInfoCard}>
+                        <View style={styles.walletInfo}>
+                            <View style={styles.walletIconContainer}>
+                                <Wallet size={24} color={colors.primary}/>
+                            </View>
+                            <View style={styles.walletDetails}>
+                                <Text style={styles.walletName}>{wallet?.name || 'My Wallet'}</Text>
+                                <Text style={styles.walletStatus}>Active</Text>
+                            </View>
+                        </View>
+                    </Card>
+                </View>
 
                 <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Settings</Text>
                     {settingsOptions.map((option, index) => (
                         <Card
                             key={index}
@@ -110,44 +125,55 @@ export default function SettingsScreen() {
 
                 {addresses && Object.keys(addresses).length > 0 && (
                     <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Shield size={20} color={colors.primary}/>
-                            <Text style={styles.sectionTitle}>{wallet?.name || 'Unknown'}: Network Addresses</Text>
-                        </View>
+                        <Text style={styles.sectionTitle}>Network Addresses</Text>
 
-                        <Card style={styles.addressCard}>
-                            {Object.entries(addresses).map(([network, address], index, array) => (
-                                <TouchableOpacity
+                        {Object.entries(addresses).map(([network, address]) => {
+                            const networkInfo = getNetworkInfo(network);
+                            return (
+                                <Card
                                     key={network}
-                                    style={[
-                                        styles.addressRow,
-                                        index === array.length - 1 ? styles.addressRowLast : null,
-                                    ]}
-                                    onPress={() => handleCopyAddress(address as string, getNetworkName(network))}
-                                    activeOpacity={0.7}
+                                    style={styles.networkCard}
+                                    onPress={() => handleCopyAddress(address as string, networkInfo.name)}
                                 >
-                                    <View style={styles.addressContent}>
-                                        <Text style={styles.networkLabel}>{getNetworkName(network)}</Text>
-                                        <Text style={styles.addressValue}>{formatAddress(address as string)}</Text>
+                                    <View style={styles.networkContent}>
+                                        <View style={styles.networkLeft}>
+                                            <View style={[
+                                                styles.networkIconContainer,
+                                                {backgroundColor: networkInfo.color + '20'}
+                                            ]}>
+                                                <Image
+                                                    source={networkInfo.icon}
+                                                    style={styles.networkIconImage}
+                                                />
+                                            </View>
+                                            <View style={styles.networkDetails}>
+                                                <Text style={styles.networkName}>
+                                                    {networkInfo.name}
+                                                </Text>
+                                                <Text style={styles.networkAddress}>
+                                                    {formatAddress(address as string)}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        <Copy size={20} color={colors.primary}/>
                                     </View>
-                                    <Copy size={18} color={colors.primary}/>
-                                </TouchableOpacity>
-                            ))}
-                        </Card>
+                                </Card>
+                            );
+                        })}
                     </View>
                 )}
 
-                <View style={styles.actionsSection}>
-
-                    <TouchableOpacity
-                        style={styles.deleteButton}
-                        onPress={handleDeleteWallet}
-                    >
-                        <Trash2 size={20} color={colors.text}/>
-                        <Text style={styles.deleteButtonText}>Delete Wallet</Text>
-                    </TouchableOpacity>
-
-                </View>
+                {wallet && (
+                    <View style={styles.section}>
+                        <TouchableOpacity
+                            style={styles.deleteButton}
+                            onPress={handleDeleteWallet}
+                        >
+                            <Trash2 size={20} color={colors.text}/>
+                            <Text style={styles.deleteButtonText}>Delete Wallet</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
 
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>Built with Tether WDK</Text>
@@ -176,63 +202,53 @@ const styles = StyleSheet.create({
     },
     section: {
         paddingHorizontal: spacing.md,
-        marginBottom: spacing.lg,
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: spacing.md,
+        marginBottom: spacing.xl,
     },
     sectionTitle: {
-        ...typography.bodyLarge,
+        ...typography.labelLarge,
         fontWeight: '600',
-        color: colors.text,
-        marginLeft: spacing.sm,
-    },
-    infoCard: {
-        padding: spacing.md,
-    },
-    infoRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    infoLabel: {
-        ...typography.bodyMedium,
         color: colors.textSecondary,
+        marginBottom: spacing.md,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
-    infoValue: {
-        ...typography.bodyMedium,
-        color: colors.text,
-        fontWeight: '500',
+    dangerSectionTitle: {
+        ...typography.labelLarge,
+        fontWeight: '600',
+        color: colors.error,
+        marginBottom: spacing.md,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
-    addressCard: {
+    walletInfoCard: {
         padding: spacing.md,
     },
-    addressRow: {
+    walletInfo: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: spacing.sm,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
     },
-    addressRowLast: {
-        borderBottomWidth: 0,
-    },
-    addressContent: {
-        flex: 1,
+    walletIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: colors.primary + '20',
+        justifyContent: 'center',
+        alignItems: 'center',
         marginRight: spacing.md,
     },
-    networkLabel: {
-        ...typography.bodyMedium,
-        color: colors.textSecondary,
+    walletDetails: {
+        flex: 1,
+    },
+    walletName: {
+        ...typography.bodyLarge,
+        color: colors.text,
+        fontWeight: '600',
         marginBottom: 4,
     },
-    addressValue: {
+    walletStatus: {
         ...typography.bodySmall,
-        color: colors.text,
-        fontFamily: 'monospace',
+        color: colors.success,
+        fontWeight: '500',
     },
     optionCard: {
         marginBottom: spacing.sm,
@@ -251,26 +267,46 @@ const styles = StyleSheet.create({
         ...typography.bodyMedium,
         color: colors.text,
     },
-    actionsSection: {
-        paddingHorizontal: spacing.md,
-        marginTop: spacing.lg,
+    networkCard: {
+        marginBottom: spacing.sm,
+        padding: spacing.md,
     },
-    lockButton: {
+    networkContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    networkLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: spacing.sm,
-        padding: spacing.md,
-        borderRadius: 12,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
-        marginBottom: spacing.sm,
+        flex: 1,
+        marginRight: spacing.md,
     },
-    lockText: {
+    networkIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: spacing.md,
+    },
+    networkIconImage: {
+        width: 24,
+        height: 24,
+    },
+    networkDetails: {
+        flex: 1,
+    },
+    networkName: {
         ...typography.bodyMedium,
         color: colors.text,
         fontWeight: '600',
+        marginBottom: 4,
+    },
+    networkAddress: {
+        ...typography.bodySmall,
+        color: colors.textSecondary,
+        fontFamily: 'monospace',
     },
     deleteButton: {
         flexDirection: 'row',
@@ -287,10 +323,17 @@ const styles = StyleSheet.create({
         color: colors.text,
         fontWeight: '600',
     },
+    warningText: {
+        ...typography.bodySmall,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 18,
+    },
     footer: {
         alignItems: 'center',
-        marginTop: spacing.xl,
+        marginTop: spacing.lg,
         paddingVertical: spacing.lg,
+        paddingHorizontal: spacing.md,
     },
     footerText: {
         ...typography.bodySmall,

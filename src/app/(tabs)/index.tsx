@@ -1,15 +1,14 @@
 import React, {useEffect, useState} from 'react';
 import {FlatList, Image, ImageSourcePropType, RefreshControl, StyleSheet, Text, View} from 'react-native';
 import {AssetTicker, useWallet} from '@tetherto/wdk-react-native-provider';
-import {Eye, EyeOff, Plus, QrCode, Send} from 'lucide-react-native';
+import {Eye, EyeOff, Plus, QrCode, Send, Wallet} from 'lucide-react-native';
 import {Button, Card, Screen} from '@/components';
 import {colors, spacing, typography} from '@/theme';
 import {router} from 'expo-router';
 import {FiatCurrency, pricingService} from '@/services/pricing.service';
 import {assetConfig} from '@/config/assets';
 import Decimal from 'decimal.js';
-import formatTokenAmount from "@/utils/format-token-amount";
-import formatAmount from "@/utils/format-amount";
+import {formatAmount, formatTokenAmount} from "@/utils/format";
 
 type Asset = {
     denomination: string;
@@ -23,10 +22,18 @@ type Asset = {
 };
 
 export default function WalletScreen() {
-    const {wallet, balances, refreshWalletBalance} = useWallet();
+    const {wallet, balances, isUnlocked, refreshWalletBalance, refreshTransactions} = useWallet();
     const [balanceVisible, setBalanceVisible] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [assets, setAssets] = useState<Asset[]>([]);
+
+    const hasWallet = !!wallet;
+
+    useEffect(() => {
+        if (hasWallet && !isUnlocked) {
+            router.replace('/authorize');
+        }
+    }, [hasWallet, isUnlocked, router]);
 
     const getAssetsWithBalancesAndPrices = async () => {
         if (!wallet?.enabledAssets) return [];
@@ -42,43 +49,36 @@ export default function WalletScreen() {
             });
         }
 
-        const promises = wallet.enabledAssets.map(async (assetSymbol) => {
-            const config = assetConfig[assetSymbol as keyof typeof assetConfig];
-            if (!config) return null;
+        const assets = wallet.enabledAssets
+            .map((assetSymbol) => {
+                const config = assetConfig[assetSymbol as keyof typeof assetConfig];
+                if (!config) return null;
 
-            const balanceData = balanceMap.get(assetSymbol) || {totalBalance: 0};
-            const balance = balanceData.totalBalance;
+                const balanceData = balanceMap.get(assetSymbol) || {totalBalance: 0};
+                const balance = balanceData.totalBalance;
 
-            const price = await pricingService.getFiatValue(
-                1,
-                assetSymbol as AssetTicker,
-                FiatCurrency.USD
-            );
+                const price = pricingService.getExchangeRate(
+                    assetSymbol as AssetTicker,
+                    FiatCurrency.USD
+                ) || 0;
 
-            // Get usd worth of the balance
-            const balanceUSD = await pricingService.getFiatValue(
-                balance,
-                assetSymbol as AssetTicker,
-                FiatCurrency.USD
-            );
+                const balanceUSD = balance * price;
 
-            return {
-                denomination: assetSymbol,
-                balance: balance,
-                balanceUSD: balanceUSD,
-                price: price,
-                name: config.name,
-                symbol: assetSymbol.toUpperCase(),
-                icon: config.icon,
-                color: config.color,
-            };
-        });
-
-        const results = (await Promise.all(promises))
+                return {
+                    denomination: assetSymbol,
+                    balance: balance,
+                    balanceUSD: balanceUSD,
+                    price: price,
+                    name: config.name,
+                    symbol: assetSymbol.toUpperCase(),
+                    icon: config.icon,
+                    color: config.color,
+                };
+            })
             .filter(Boolean) as Asset[];
 
         // Sort by assets with balance first, then by usd worth
-        return results.sort((a, b) => {
+        return assets.sort((a, b) => {
             if (a.balance > 0 && b.balance === 0) return -1;
             if (a.balance === 0 && b.balance > 0) return 1;
             return (b?.balanceUSD || 0) - (a?.balanceUSD || 0);
@@ -95,6 +95,7 @@ export default function WalletScreen() {
         setRefreshing(true);
         try {
             await refreshWalletBalance();
+            await refreshTransactions();
             const updatedAssets = await getAssetsWithBalancesAndPrices();
             setAssets(updatedAssets);
         } catch (error) {
@@ -111,6 +112,11 @@ export default function WalletScreen() {
 
         return total.toFixed(2);
     };
+
+    useEffect(() => {
+        void refreshWalletBalance()
+        void refreshTransactions()
+    }, []);
 
     const renderAssetItem = ({item}: { item: Asset }) => {
         const hasBalance = item.balance > 0;
@@ -152,7 +158,17 @@ export default function WalletScreen() {
     return (
         <Screen>
             <View style={styles.header}>
-                <Text style={styles.title}>UniWallet</Text>
+                <View style={styles.headerLeft}>
+                    <View style={styles.walletIconContainer}>
+                        <Wallet size={22} color={colors.primaryLight}/>
+                    </View>
+                    <View style={styles.walletInfo}>
+                        <Text style={styles.walletName}>{wallet?.name || 'My Wallet'}</Text>
+                        <Text style={styles.walletSubtext}>
+                            {wallet?.enabledAssets?.length || 0} assets
+                        </Text>
+                    </View>
+                </View>
                 <Button
                     title=""
                     onPress={() => setBalanceVisible(!balanceVisible)}
@@ -180,7 +196,7 @@ export default function WalletScreen() {
                 <View style={styles.actionButton}>
                     <Button
                         title=""
-                        onPress={() => router.push('/receive')}
+                        onPress={() => router.push('/receive/' as any)}
                         variant="secondary"
                         style={styles.actionButtonInner}
                     >
@@ -192,7 +208,7 @@ export default function WalletScreen() {
                 <View style={styles.actionButton}>
                     <Button
                         title=""
-                        onPress={() => router.push('/send')}
+                        onPress={() => router.push('/send/' as any)}
                         variant="secondary"
                         style={styles.actionButtonInner}
                     >
@@ -232,7 +248,7 @@ export default function WalletScreen() {
                 }
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
-                        <Text style={styles.emptyText}>No assets enabled</Text>
+                        <Text style={styles.emptyText}>No assets found</Text>
                     </View>
                 }
             />
@@ -247,10 +263,36 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: spacing.md,
         paddingTop: spacing.md,
+        paddingBottom: spacing.sm,
     },
-    title: {
-        ...typography.displaySmall,
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    walletIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.overlayLight,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: spacing.sm,
+    },
+    walletIcon: {
+        fontSize: 20,
+    },
+    walletInfo: {
+        flex: 1,
+    },
+    walletName: {
+        ...typography.bodyLarge,
         color: colors.text,
+        fontWeight: '600',
+    },
+    walletSubtext: {
+        ...typography.bodySmall,
+        color: colors.textSecondary,
     },
     eyeButton: {
         padding: spacing.sm,
@@ -267,11 +309,6 @@ const styles = StyleSheet.create({
     balanceAmount: {
         ...typography.displayLarge,
         color: colors.text,
-        marginBottom: spacing.xs,
-    },
-    walletName: {
-        ...typography.bodySmall,
-        color: colors.textTertiary,
     },
     actionsContainer: {
         flexDirection: 'row',

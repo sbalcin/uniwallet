@@ -64,7 +64,7 @@ export default function BackupPhraseScreen() {
 
             <View style={styles.content}>
                 <View style={styles.warning}>
-                    <TriangleAlert style={styles.warningIcon} size={32} color={colors.textSecondary}/>
+                    <TriangleAlert style={styles.warningIcon} size={32} color={colors.warning}/>
                     <Text style={styles.warningText}>
                         Write down your recovery phrase and store it in a safe place. Never
                         share it with anyone.
