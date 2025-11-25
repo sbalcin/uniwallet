@@ -1,0 +1,144 @@
+diff --git a/node_modules/@tetherto/wdk-react-native-provider/lib/module/services/wdk-service/wdk-secret-manager-storage.js b/node_modules/@tetherto/wdk-react-native-provider/lib/module/services/wdk-service/wdk-secret-manager-storage.js
+index a79f298..2e7c58d 100644
+--- a/node_modules/@tetherto/wdk-react-native-provider/lib/module/services/wdk-service/wdk-secret-manager-storage.js
++++ b/node_modules/@tetherto/wdk-react-native-provider/lib/module/services/wdk-service/wdk-secret-manager-storage.js
+@@ -6,59 +6,86 @@ export const WDK_STORAGE_SEED = 'seed';
+ export const WDK_STORAGE_ENTROPY = 'entropy';
+ export const WDK_STORAGE_SALT = 'salt';
+ export class WdkSecretManagerStorage {
+-  static BASE_SERVICE_NAME = 'wdk.secretManager';
+-  static async saveData(key, value) {
+-    const itemService = WdkSecretManagerStorage.getServiceForItem(key);
+-    await Keychain.setGenericPassword(key, b4a.isBuffer(value) ? b4a.toString(value, 'hex') : value, {
+-      service: itemService,
+-      accessControl: key === 'seed' ? Keychain.ACCESS_CONTROL.BIOMETRY_ANY : undefined
+-    });
+-  }
+-  static async retrieveData(key) {
+-    const itemService = WdkSecretManagerStorage.getServiceForItem(key);
+-    try {
+-      const credentials = await Keychain.getGenericPassword({
+-        service: itemService,
+-        accessControl: key === 'seed' ? Keychain.ACCESS_CONTROL.BIOMETRY_ANY : undefined
+-      });
+-      if (credentials) {
+-        return b4a.from(credentials.password, 'hex');
+-      }
+-      console.info(`For key ${itemService} in secure storage data do not exist.`);
+-      return false;
+-    } catch (error) {
+-      console.error(error);
+-      return false;
++    static BASE_SERVICE_NAME = 'wdk.secretManager';
++
++    static async saveData(key, value) {
++        const itemService = WdkSecretManagerStorage.getServiceForItem(key);
++
++        const options = {
++            service: itemService,
++        };
++
++        if (key === WDK_STORAGE_SEED) {
++            options.accessControl = Keychain.ACCESS_CONTROL.BIOMETRY_ANY;
++            options.accessible = Keychain.ACCESSIBLE.WHEN_PASSCODE_SET_THIS_DEVICE_ONLY;
++        }
++
++        await Keychain.setGenericPassword(
++            key,
++            b4a.isBuffer(value) ? b4a.toString(value, 'hex') : value,
++            options
++        );
++    }
++
++    static async retrieveData(key) {
++        const itemService = WdkSecretManagerStorage.getServiceForItem(key);
++
++        try {
++            const options = {
++                service: itemService,
++            };
++
++            if (key === WDK_STORAGE_SEED) {
++                options.authenticationPrompt = {
++                    title: 'Authenticate',
++                    subtitle: 'Unlock your wallet',
++                    description: 'Use biometrics to access your wallet',
++                    cancel: 'Cancel',
++                };
++                options.authenticationType = Keychain.AUTHENTICATION_TYPE.BIOMETRICS;
++            }
++
++            const credentials = await Keychain.getGenericPassword(options);
++
++            if (credentials) {
++                return b4a.from(credentials.password, 'hex');
++            }
++            console.info(`For key ${itemService} in secure storage data do not exist.`);
++            return false;
++        } catch (error) {
++            console.error('Failed to retrieve data from keychain:', error);
++            throw error;
++        }
++    }
++
++    static async hasKey(key) {
++        const itemService = WdkSecretManagerStorage.getServiceForItem(key);
++        return await Keychain.hasGenericPassword({
++            service: itemService
++        });
++    }
++    static async resetData(key) {
++        const itemService = WdkSecretManagerStorage.getServiceForItem(key);
++        try {
++            const success = await Keychain.resetGenericPassword({
++                service: itemService
++            });
++            if (success) {
++                console.info(`Item for key '${key}' was reset successfully.`);
++            }
++            return true;
++        } catch (error) {
++            console.error(`Failed to reset item for key '${key}':`, error);
++            return false;
++        }
++    }
++    static async resetAllData() {
++        await WdkSecretManagerStorage.resetData(WDK_STORAGE_ENTROPY);
++        await WdkSecretManagerStorage.resetData(WDK_STORAGE_SEED);
++        await WdkSecretManagerStorage.resetData(WDK_STORAGE_SALT);
+     }
+-  }
+-  static async hasKey(key) {
+-    const itemService = WdkSecretManagerStorage.getServiceForItem(key);
+-    return await Keychain.hasGenericPassword({
+-      service: itemService
+-    });
+-  }
+-  static async resetData(key) {
+-    const itemService = WdkSecretManagerStorage.getServiceForItem(key);
+-    try {
+-      const success = await Keychain.resetGenericPassword({
+-        service: itemService
+-      });
+-      if (success) {
+-        console.info(`Item for key '${key}' was reset successfully.`);
+-      }
+-      return true;
+-    } catch (error) {
+-      console.error(`Failed to reset item for key '${key}':`, error);
+-      return false;
++    static getServiceForItem(key) {
++        return `${WdkSecretManagerStorage.BASE_SERVICE_NAME}.${key}`;
+     }
+-  }
+-  static async resetAllData() {
+-    await WdkSecretManagerStorage.resetData(WDK_STORAGE_ENTROPY);
+-    await WdkSecretManagerStorage.resetData(WDK_STORAGE_SEED);
+-    await WdkSecretManagerStorage.resetData(WDK_STORAGE_SALT);
+-  }
+-  static getServiceForItem(key) {
+-    return `${WdkSecretManagerStorage.BASE_SERVICE_NAME}.${key}`;
+-  }
+ }
+ //# sourceMappingURL=wdk-secret-manager-storage.js.map
+\ No newline at end of file

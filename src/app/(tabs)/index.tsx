@@ -22,7 +22,7 @@ type Asset = {
 };
 
 export default function WalletScreen() {
-    const {wallet, balances, isUnlocked, refreshWalletBalance, refreshTransactions} = useWallet();
+    const {wallet, balances, isUnlocked, unlockWallet, refreshWalletBalance, refreshTransactions} = useWallet();
     const [balanceVisible, setBalanceVisible] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [assets, setAssets] = useState<Asset[]>([]);

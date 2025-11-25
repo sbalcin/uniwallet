@@ -7,18 +7,17 @@ import {Button, Screen} from '@/components';
 import {colors, spacing, typography} from '@/theme';
 import getErrorMessage from "@/utils/get-error-message";
 
-
 export default function AuthorizeScreen() {
     const router = useRouter();
     const {wallet, unlockWallet} = useWallet();
-    const [biometricAvailable, setBiometricAvailable] = useState(false);
-
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [authAttempts, setAuthAttempts] = useState(0);
 
     useEffect(() => {
-        handleAuthorize();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        if (authAttempts === 0) {
+            void handleAuthorize();
+        }
     }, []);
 
     const handleAuthorize = async () => {
@@ -30,6 +29,7 @@ export default function AuthorizeScreen() {
 
         setIsLoading(true);
         setError(null);
+        setAuthAttempts(prev => prev + 1);
 
         try {
             const isDone = await unlockWallet();
@@ -37,16 +37,26 @@ export default function AuthorizeScreen() {
                 router.replace('/(tabs)');
             }
         } catch (error) {
-            console.error('Failed to unlock wallet:', error);
-            setError(getErrorMessage(error, 'Failed to unlock wallet'));
-            return;
+            const errorMessage = getErrorMessage(error, 'Failed to unlock wallet');
+
+            const isCancellation =
+                errorMessage.includes('Cancel') ||
+                errorMessage.includes('User canceled') ||
+                errorMessage.includes('Authentication failed');
+
+            if (isCancellation) {
+                setError('Authentication cancelled. Please try again.');
+            } else {
+                setError(errorMessage);
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleBiometricAuth = async () => {
-        handleAuthorize();
+        setError(null);
+        await handleAuthorize();
     };
 
     return (
@@ -57,18 +67,38 @@ export default function AuthorizeScreen() {
                 </View>
                 <Text style={styles.title}>Unlock Wallet</Text>
                 <Text style={styles.description}>
-                    {biometricAvailable
-                        ? 'Use biometric authentication to unlock your wallet'
-                        : 'Authenticate to continue'}
+                    {'Use biometric authentication to unlock your wallet'}
                 </Text>
+
+                {error && (
+                    <View style={styles.errorContainer}>
+                        <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                )}
+
+                {authAttempts > 0 && (
+                    <Text style={styles.attemptsText}>
+                        Attempts: {authAttempts}
+                    </Text>
+                )}
             </View>
 
             <View style={styles.footer}>
                 <Button
-                    title={biometricAvailable ? 'Unlock with Biometric' : 'Unlock'}
+                    title={'Unlock with Biometric'}
                     onPress={handleBiometricAuth}
                     loading={isLoading}
+                    disabled={isLoading}
                 />
+
+                {authAttempts > 5 && (
+                    <Button
+                        title="Go to Onboarding"
+                        onPress={() => router.replace('/onboarding')}
+                        style={styles.secondaryButton}
+                        variant="outline"
+                    />
+                )}
             </View>
         </Screen>
     );
@@ -103,7 +133,29 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         paddingHorizontal: spacing.lg,
     },
+    errorContainer: {
+        marginTop: spacing.lg,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        backgroundColor: 'rgba(255, 59, 48, 0.1)',
+        borderRadius: 8,
+        maxWidth: '90%',
+    },
+    errorText: {
+        ...typography.bodyMedium,
+        color: '#ff3b30',
+        textAlign: 'center',
+    },
+    attemptsText: {
+        ...typography.bodySmall,
+        color: colors.textSecondary,
+        marginTop: spacing.md,
+    },
     footer: {
         paddingBottom: spacing.xl,
+        gap: spacing.md,
+    },
+    secondaryButton: {
+        marginTop: spacing.md,
     },
 });
