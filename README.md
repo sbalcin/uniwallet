@@ -5,12 +5,29 @@ A polished, secure React Native cryptocurrency wallet application built with Tet
 ## 📱 Screenshots
 
 <p align="center">
-  <img src="./assets/demo/IMG_9223.PNG" width="200" alt="UniWallet" />
-  <img src="./assets/demo/IMG_9224.PNG" width="200" alt="UniWallet" />
-  <img src="./assets/demo/IMG_9225.PNG" width="200" alt="UniWallet" />
-  <img src="./assets/demo/IMG_9226.PNG" width="200" alt="UniWallet" />
-  <img src="./assets/demo/IMG_9227.PNG" width="200" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9223.PNG" width="220" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9224.PNG" width="220" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9225.PNG" width="220" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9226.PNG" width="220" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9227.PNG" width="220" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9228.PNG" width="220" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9229.PNG" width="220" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9230.PNG" width="220" alt="UniWallet" />
 </p>
+
+
+### 🐛 WDK Patch Note
+
+The app includes a critical patch for `@tetherto/wdk-react-native-provider` to fix biometric authentication issues in the keychain storage implementation. 
+The original WDK library had incomplete biometric authentication handling that prevented proper Face ID/Touch ID prompts during seed retrieval.
+
+
+**Key improvements in the patch:**
+
+- Added proper biometric authentication prompts with customizable title, subtitle, and description during seed retrieval
+- Set `WHEN_PASSCODE_SET_THIS_DEVICE_ONLY` accessibility level for enhanced security on the seed storage
+- Configured `AUTHENTICATION_TYPE.BIOMETRICS` to explicitly require biometric authentication
+- Improved error handling with proper error throwing instead of silent failures
 
 
 ## 🚀 Features
