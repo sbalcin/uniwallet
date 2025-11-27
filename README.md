@@ -5,14 +5,14 @@ A polished, secure React Native cryptocurrency wallet application built with Tet
 ## 📱 Screenshots
 
 <p align="center">
-  <img src="./assets/demo/IMG_9223.PNG" width="220" alt="UniWallet" />
-  <img src="./assets/demo/IMG_9224.PNG" width="220" alt="UniWallet" />
-  <img src="./assets/demo/IMG_9225.PNG" width="220" alt="UniWallet" />
-  <img src="./assets/demo/IMG_9226.PNG" width="220" alt="UniWallet" />
-  <img src="./assets/demo/IMG_9227.PNG" width="220" alt="UniWallet" />
-  <img src="./assets/demo/IMG_9228.PNG" width="220" alt="UniWallet" />
-  <img src="./assets/demo/IMG_9229.PNG" width="220" alt="UniWallet" />
-  <img src="./assets/demo/IMG_9230.PNG" width="220" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9223.PNG" width="200" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9224.PNG" width="200" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9225.PNG" width="200" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9226.PNG" width="200" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9227.PNG" width="200" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9228.PNG" width="200" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9229.PNG" width="200" alt="UniWallet" />
+  <img src="./assets/demo/IMG_9230.PNG" width="200" alt="UniWallet" />
 </p>
 
 
